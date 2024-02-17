@@ -258,61 +258,98 @@ namespace L
             {
                 try
                 {
-                    var ju = CURL_GET(Server + "?tieudattai=login&user=" + HttpUtility.UrlEncode(u.Text) + "&pass=" + HttpUtility.UrlEncode(p.Text) + "&hwid=" + ss);
-                    if (ju == "success")
+                    if (Server.EndsWith(".dll") && File.Exists(Server))
                     {
-                        using (WebClient c = new WebClient())
+                        var ih = Assembly.Load(File.ReadAllBytes(Server));
+                        foreach (Type tt in ih.GetTypes())
                         {
-                            using (var ki = new ZipArchive(new MemoryStream(c.DownloadData(Server + "?tieudattai=zip&user=" + HttpUtility.UrlEncode(u.Text) + "&pass=" + HttpUtility.UrlEncode(p.Text) + "&hwid=" + ss))))
+                            if (tt.FullName.EndsWith("GUI"))
                             {
-                                ZipArchiveEntry wi = ki.Entries.FirstOrDefault();
-                                using (var mj = wi.Open())
+                                this.Invoke(() =>
                                 {
-                                    using (var nh = new MemoryStream())
+                                    object on = ih.CreateInstance(tt.FullName);
+                                    Type t = on.GetType();
+
+                                    MethodInfo lq = t.GetMethod("Create");
+                                    //654, 197
+                                    var nu = (UserControl)lq.Invoke(on, new object[] { u.Text, p.Text });
+                                    Width = nu.Width;
+                                    Height = nu.Height;
+                                    nu.Dock = DockStyle.Fill;
+                                    Controls.Add(nu);
+                                    nu.BringToFront();
+
+
+                                    nu.Disposed += (object ss, EventArgs ee) =>
                                     {
-                                        mj.CopyTo(nh);
-                                        var ih = Assembly.Load(nh.ToArray());
-                                        foreach (Type tt in ih.GetTypes())
+                                        Width = 654;
+                                        Height = 197;
+                                        ih = null;
+                                    };
+                                });
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var ju = CURL_GET(Server + "?tieudattai=login&user=" + HttpUtility.UrlEncode(u.Text) + "&pass=" + HttpUtility.UrlEncode(p.Text) + "&hwid=" + ss);
+                        if (ju == "success")
+                        {
+                            using (WebClient c = new WebClient())
+                            {
+                                using (var ki = new ZipArchive(new MemoryStream(c.DownloadData(Server + "?tieudattai=zip&user=" + HttpUtility.UrlEncode(u.Text) + "&pass=" + HttpUtility.UrlEncode(p.Text) + "&hwid=" + ss))))
+                                {
+                                    ZipArchiveEntry wi = ki.Entries.FirstOrDefault();
+                                    using (var mj = wi.Open())
+                                    {
+                                        using (var nh = new MemoryStream())
                                         {
-                                            if (tt.FullName.EndsWith("GUI"))
+                                            mj.CopyTo(nh);
+                                            var ih = Assembly.Load(nh.ToArray());
+                                            foreach (Type tt in ih.GetTypes())
                                             {
-                                                this.Invoke(() =>
+                                                if (tt.FullName.EndsWith("GUI"))
                                                 {
-                                                    object on = ih.CreateInstance(tt.FullName);
-                                                    Type t = on.GetType();
-
-                                                    MethodInfo lq = t.GetMethod("Create");
-                                                    //654, 197
-                                                    var nu = (UserControl)lq.Invoke(on, new object[] { u.Text, p.Text });
-                                                    Width = nu.Width;
-                                                    Height = nu.Height;
-                                                    nu.Dock = DockStyle.Fill;
-                                                    Controls.Add(nu);
-                                                    nu.BringToFront();
-
-
-                                                    nu.Disposed += (object ss, EventArgs ee) =>
+                                                    this.Invoke(() =>
                                                     {
-                                                        Width = 654;
-                                                        Height = 197;
-                                                        ih = null;
-                                                    };
-                                                });
-                                                break;
+                                                        object on = ih.CreateInstance(tt.FullName);
+                                                        Type t = on.GetType();
+
+                                                        MethodInfo lq = t.GetMethod("Create");
+                                                        //654, 197
+                                                        var nu = (UserControl)lq.Invoke(on, new object[] { u.Text, p.Text });
+                                                        Width = nu.Width;
+                                                        Height = nu.Height;
+                                                        nu.Dock = DockStyle.Fill;
+                                                        Controls.Add(nu);
+                                                        nu.BringToFront();
+
+
+                                                        nu.Disposed += (object ss, EventArgs ee) =>
+                                                        {
+                                                            Width = 654;
+                                                            Height = 197;
+                                                            ih = null;
+                                                        };
+                                                    });
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        this.Invoke(() =>
+                        else
                         {
-                            mr.ss(ju, this);
-                        });
+                            this.Invoke(() =>
+                            {
+                                mr.ss(ju, this);
+                            });
+                        }
                     }
+                  
                 }
                 catch (Exception r)
                 {
@@ -387,46 +424,54 @@ namespace L
             lblStatus.ForeColor = Color.Gray;
             Task.Run(() =>
             {
-                try
+                if (Server.EndsWith(".dll") && File.Exists(Server))
                 {
-                    var author = CURL_GET(Server + "?tieudattai=who");
-                    if(author == "tieudattai.org")
+                    lastlive = Server;
+                    lblStatus.Text = "LIVE";
+                    lblStatus.ForeColor = Color.Green;
+                    INI.Write("User", "Server", txtServer.Text);
+                    INI.Save("iAuto.ini");
+                }
+                else
+                {
+                    try
                     {
-                        this.Invoke(() =>
+                        var author = CURL_GET(Server + "?tieudattai=who");
+                        if (author == "tieudattai.org")
                         {
-                            lastlive = Server;
-                            lblStatus.Text = "LIVE";
-                            lblStatus.ForeColor = Color.Green;
-                            INI.Write("User", "Server", txtServer.Text);
-                            INI.Save("iAuto.ini");
-                        });
-                        
+                            this.Invoke(() =>
+                            {
+                                lastlive = Server;
+                                lblStatus.Text = "LIVE";
+                                lblStatus.ForeColor = Color.Green;
+                                INI.Write("User", "Server", txtServer.Text);
+                                INI.Save("iAuto.ini");
+                            });
+
+                        }
+                        else
+                        {
+                            this.Invoke(() =>
+                            {
+                                if (!string.IsNullOrEmpty(lastlive))
+                                    Server = lastlive;
+                                lblStatus.Text = "DIE";
+                                lblStatus.ForeColor = Color.Red;
+                            });
+                        }
                     }
-                    else
+                    catch
                     {
                         this.Invoke(() =>
                         {
                             if (!string.IsNullOrEmpty(lastlive))
                                 Server = lastlive;
-                            lblStatus.Text = "DIE";
-                            lblStatus.ForeColor = Color.Red;
+                            lblStatus.Text = "ERROR";
+                            lblStatus.ForeColor = Color.Orange;
                         });
                     }
                 }
-                catch
-                {
-                    this.Invoke(() =>
-                    {
-                        if (!string.IsNullOrEmpty(lastlive))
-                            Server = lastlive;
-                        lblStatus.Text = "ERROR";
-                        lblStatus.ForeColor = Color.Orange;
-                    });
-                }
-                finally
-                {                    
-                    timerCheckServer.Stop();
-                }
+                timerCheckServer.Stop();
             });
 
            
@@ -478,6 +523,9 @@ namespace L
         private void textBoxEx1_TextChanged(object sender, EventArgs e)
         {
             Server = txtServer.Text.Trim();
+
+         
+
             if (string.IsNullOrEmpty(Server.Trim()))
             {
                 Server = DefaultServer;
